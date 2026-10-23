@@ -178,16 +178,20 @@
       },
 
       guardar: function (esferaEl) {
-        const centro = this.el.object3D.position;
         const forma = this.el.getAttribute('geometry');
-        const fondo = centro.y - forma.height / 2;       // altura del piso del tubo
 
         // Le quitamos la física para que se quede quieta adentro
         esferaEl.removeAttribute('dynamic-body');
 
-        // La apilamos: la primera toca el fondo, cada una nueva va un diámetro más arriba
-        const altura = fondo + RADIO_ESFERA + this.cantidad * RADIO_ESFERA * 2;
-        esferaEl.object3D.position.set(centro.x, altura, centro.z);
+        // REGGIE: la colgamos DEL TUBO, no de la escena.
+        // Es el truco de padre e hijo: lo que cuelga de algo viaja con ese algo.
+        // Sin esto, si el tubo se mueve, la esfera se queda flotando atrás.
+        this.el.object3D.attach(esferaEl.object3D);
+
+        // Posición LOCAL: medida desde el centro del tubo, no desde el mundo.
+        // Por eso x y z van en 0 (justo en el eje) y la y se cuenta desde el fondo.
+        const altura = -forma.height / 2 + RADIO_ESFERA + this.cantidad * RADIO_ESFERA * 2;
+        esferaEl.object3D.position.set(0, altura, 0);
 
         this.cantidad++;
       },
