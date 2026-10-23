@@ -40,6 +40,8 @@
 
     let colocadas = 0;              // cuántas esferas ya están en su contenedor
     let puntos = 0;                 // REGGIE: puntaje por distancia
+    let racha = 0;                  // REGGIE: aciertos seguidos sin fallar
+    let multiplicador = 1;          // REGGIE: x1, x2 o x3 según la racha
     let tiempoInicio = null;        // REGGIE: arranca en el primer agarre
     let tiempoFinal = null;         // REGGIE: se congela al terminar
     const teclas = {};              // qué teclas están presionadas
@@ -270,6 +272,7 @@
         // y atravesarlo (la física revisa 60 veces por segundo y a veces se la salta).
         if (posicion.y < -2 || Math.abs(posicion.x) > 11 ||
             posicion.z > 7 || posicion.z < -13) {
+          romperRacha();                                   // REGGIE: fallar de lejos cuesta la racha
           this.reiniciar();
           return;
         }
@@ -280,9 +283,12 @@
           if (!contenedor.estaEncima(posicion)) continue;  // no está en este, revisa el siguiente
 
           if (contenedor.data.color === this.data.color) {
-            // REGGIE: entre más lejos estés al encestar, más puntos
+            // REGGIE: puntos por distancia, multiplicados por la racha
+            racha++;
+            multiplicador = Math.min(3, 1 + Math.floor(racha / 3));
             const jug = document.querySelector('#pies').object3D.position;
-            const gana = Math.max(20, Math.round(jug.distanceTo(el.object3D.position) * 25));
+            const base = Math.max(20, Math.round(jug.distanceTo(el.object3D.position) * 25));
+            const gana = base * multiplicador;
             puntos += gana;
             numeroFlotante(el.object3D.position, '+' + gana);
 
@@ -291,7 +297,8 @@
             this.colocada = true;
             esferaColocada();
           } else {
-            // Color equivocado: regresa a la cesta
+            // Color equivocado: regresa a la cesta y se rompe la racha
+            romperRacha();                                   // REGGIE
             this.reiniciar();
           }
           return;
@@ -311,6 +318,14 @@
       }
     });
 
+
+    /* REGGIE: se pierde la racha al fallar */
+    function romperRacha() {
+      if (racha === 0 && multiplicador === 1) return;
+      racha = 0;
+      multiplicador = 1;
+      actualizarPanel();
+    }
 
     /* REGGIE: prende o apaga el tubo del color que traes cargando */
     function resaltar(color, encendido) {
@@ -364,8 +379,8 @@
     function actualizarPanel() {
       document.querySelector('#texto-marcador')
         .setAttribute('value', 'Esferas  ' + colocadas + ' / ' + TOTAL);
-      document.querySelector('#texto-puntos')
-        .setAttribute('value', 'Puntos  ' + puntos);          // REGGIE
+      document.querySelector('#texto-puntos')                 // REGGIE
+        .setAttribute('value', 'Puntos  ' + puntos + (multiplicador > 1 ? '   x' + multiplicador : ''));
       if (colocadas === TOTAL) {
         tiempoFinal = performance.now();                      // REGGIE: congela el reloj
         const seg = Math.floor((tiempoFinal - tiempoInicio) / 1000);
@@ -385,6 +400,8 @@
     function reiniciar() {
       colocadas = 0;
       puntos = 0;                                             // REGGIE
+      racha = 0;
+      multiplicador = 1;
       tiempoInicio = null;
       tiempoFinal = null;
       document.querySelector('#texto-tiempo').setAttribute('value', 'Tiempo  0 s');
@@ -535,9 +552,17 @@
                 radius="0.18" height="0.82" open-ended="true" side="double"
                 color="#1E88E5" opacity="0.4"></a-cylinder>
 
-    <a-cylinder contenedor="color: amarillo" static-body position="2.1 1.61 -8.5"
+    <!-- REGGIE: este tubo SE MUEVE de lado a lado.
+         Le quité static-body a propósito: el cuerpo físico no viaja con la
+         animación, así que se quedaría una pared invisible donde estaba.
+         La revisión de "¿cayó adentro?" usa la posición visual, así que
+         sigue contando bien. -->
+    <a-cylinder contenedor="color: amarillo" position="2.1 1.61 -8.5"
                 radius="0.18" height="0.82" open-ended="true" side="double"
-                color="#FDD835" opacity="0.4"></a-cylinder>
+                color="#FDD835" opacity="0.4"
+                animation="property: position; to: 3.9 1.61 -8.5;
+                           dir: alternate; loop: true; dur: 3200;
+                           easing: easeInOutSine"></a-cylinder>
 
 
     <!-- ================= CAMPANA con sonido 3D (encima de la torre) =================
