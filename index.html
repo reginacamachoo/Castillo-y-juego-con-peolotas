@@ -264,6 +264,15 @@
         if (this.colocada || this.mano) return;
 
         const posicion = this.el.object3D.position;
+
+        // REGGIE: si se salió del castillo o se cayó del mundo, vuelve sola a la cesta.
+        // Esto cubre las dos formas de perderla: pasar POR ENCIMA de un muro,
+        // y atravesarlo (la física revisa 60 veces por segundo y a veces se la salta).
+        if (posicion.y < -2 || Math.abs(posicion.x) > 11 ||
+            posicion.z > 7 || posicion.z < -13) {
+          this.reiniciar();
+          return;
+        }
         const contenedores = document.querySelectorAll('[contenedor]');
 
         for (const el of contenedores) {
@@ -365,6 +374,14 @@
       }
     }
 
+    /* REGGIE: trae de vuelta a la cesta todas las esferas sueltas (tecla C) */
+    function recogerEsferas() {
+      document.querySelectorAll('[agarrable]').forEach(function (esfera) {
+        const c = esfera.components.agarrable;
+        if (!c.colocada) c.reiniciar();
+      });
+    }
+
     function reiniciar() {
       colocadas = 0;
       puntos = 0;                                             // REGGIE
@@ -382,7 +399,7 @@
       });
 
       document.querySelector('#texto-instruccion')
-        .setAttribute('value', 'Mete cada esfera en el tubo de su color');
+        .setAttribute('value', 'Lanza cada esfera a su tubo   ·   C o boton B: recoger');
       actualizarPanel();
     }
 
@@ -414,6 +431,10 @@
         this.el.addEventListener('abuttondown', function () {
           quiereSaltar = true;
         });
+        // REGGIE: botón B del control derecho = recoger las esferas sueltas
+        this.el.addEventListener('bbuttondown', function () {
+          recogerEsferas();
+        });
       }
     });
 
@@ -422,6 +443,7 @@
     window.addEventListener('keydown', function (e) {
       teclas[e.code] = true;
       if (e.code === 'KeyR') reiniciar();
+      if (e.code === 'KeyC') recogerEsferas();   // REGGIE: recoger las esferas sueltas
       if (e.code === 'Space') {
         quiereSaltar = true;
         e.preventDefault();                  // que la página no haga scroll
@@ -531,7 +553,7 @@
     <!-- ================= PANEL FLOTANTE (interfaz en el mundo) ================= -->
     <a-entity position="-1.5 3.1 -9.8">
       <a-plane width="3" height="1.1" color="#1C2128" opacity="0.9"></a-plane>
-      <a-text id="texto-instruccion" value="Mete cada esfera en el tubo de su color"
+      <a-text id="texto-instruccion" value="Lanza cada esfera a su tubo   ·   C o boton B: recoger"
               align="center" width="3" position="0 0.3 0.01" color="#FFFFFF"></a-text>
       <!-- El número se escribe desde el script (actualizarPanel) -->
       <a-text id="texto-marcador" value="Esferas  0 / 12"
