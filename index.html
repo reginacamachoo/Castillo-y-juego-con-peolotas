@@ -166,9 +166,9 @@
         const distancia = Math.sqrt(dx * dx + dz * dz);
 
         // Está encima si queda dentro del círculo del tubo y cerca de la boca
-        return distancia < forma.radius + 0.05 &&
-               posicionEsfera.y > boca - 0.05 &&
-               posicionEsfera.y < boca + 0.4;
+        return distancia < forma.radius + 0.35 &&
+               posicionEsfera.y > boca - 0.30 &&
+               posicionEsfera.y < boca + 0.20;
       },
 
       guardar: function (esferaEl) {
